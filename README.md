@@ -4,10 +4,12 @@ This Arduino library provides an interface for the AD7441XR chip from Analog Dev
 
 ## Features
 
-- User-friendly methods for accessing chip parameters and converting ADC/DAC values and units
-- Automatic ADC polling & status refresh function for use in the main program loop
-- Modified MUX register settings in output modes (voltage or current) to provide real output voltage/current feedback
-- Automatic activation of pull-down resistor as recommended in the chip's datasheet
+This version is easier to use compared to the original AD library:
+- User-friendly methods for accessing chip parameters and converting real ADC/DAC values & units
+- Automatic ADC polling & status update is done in the background, by calling the loop() method in the user program's main loop for non-blocking operation (especially effective when combined with continuous ADC reading mode)
+- ADC function & conversion mode changes are fully implemented as recommended in the chip's datasheet
+- MUX register settings have been modified in output modes (voltage or current) to provide real output voltage/current feedback
+- The 200K pull-down resistor is automatically enabled depending on the ADC function, as recommended in the chip's datasheet
 
 ## Usage
 
