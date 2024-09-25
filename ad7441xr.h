@@ -91,7 +91,7 @@ class AD7441XR {
         boolean usingAlertPin;
         uint8_t _txBuffer[4];
         uint8_t _rxBuffer[4];
-        struct ad7441xr_cfg cfg; // IC updated in real time. Read-only
+        struct ad7441xr_cfg cfg;
     
         /** Register read/write functions */
         static void _formatRegWrite(uint8_t, uint16_t, uint8_t *buff);
@@ -127,14 +127,23 @@ class AD7441XR {
         
         /** Update the live status bits & busy/rdy state */
         int _updateLiveStatus();
-
         int _updateBusyRdy(union ad7441xr_live_status);
+
+        /** Convert raw ADC code to floating point measurement */
         int _adcRawToReal(uint16_t, ad7441xr_op_mode, float *, ad7441xr_adc_unit *);
+
+        /** Set DI threshold & debounce */
         int _setThreshold(uint32_t, uint32_t);
         int _setDebounce(uint32_t, uint16_t);
+
+        /** Convert DAC real setpoint to code and vice versa */
         int _dacVoltageToCode(uint32_t, uint32_t *);
         int _setDacCode(uint32_t, uint16_t);
+
+        /** Poll ADC reading & update status */
         int _pollAdc(uint32_t);
+
+        /** Additional chip features */
         int _getDiag(uint32_t, uint16_t *);
         int _getTemp(uint32_t, uint16_t *);
         int _setMux(uint32_t, enum ad7441xr_adc_mux);
@@ -166,8 +175,7 @@ class AD7441XR {
 	    int setDiThreshold(int ch, int mv); 					// Set DI threshold (in mV 0-16000) - by default a DI is initiated to 4V
 	    int getTemp(int ch);									// Get chip temperature
         ad7441xr_cfg getCfg();                                  // Get configuration structure to access chip parameters & DAC/ADC values directly
-
-        int loop();                                             // Monitor ALERT pin
+        int getAlertPinState();                                 // Monitor ALERT pin
         int softReset();                                        // Perform a soft reset
 };
 

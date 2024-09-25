@@ -6,7 +6,7 @@ This Arduino library provides an interface for the AD74412R & AD74413R chips fro
 
 This version is easier to use compared to the original AD library:
 - User-friendly methods for accessing chip parameters and converting real ADC/DAC values & units
-- Automatic ADC polling & status update is done in the background, by calling the loop() method in the user program's main loop for non-blocking operation (especially effective when combined with continuous ADC reading mode)
+- Automatic ADC polling & status update is done in the background, by calling the poll() method in the user program's main loop for non-blocking operation (especially effective when combined with continuous ADC reading mode)
 - ADC function & conversion mode changes are fully implemented as recommended in the chip's datasheet
 - MUX register settings have been modified in output modes (voltage or current) to provide real output voltage/current feedback
 - The 200K pull-down resistor is automatically enabled depending on the ADC function, as recommended in the chip's datasheet
@@ -22,7 +22,7 @@ Include the library in your sketch:
 Initialize the AD7441XR object:
 
 ```cpp
-AD7441XR ad7441xr(CS_PIN, SPI, AD74413R);
+AD7441XR ad7441xr(CS_PIN, SPI, AD74412R);
 ```
 
 In your `setup()` function, initialize the chip:
@@ -36,6 +36,8 @@ In your `loop()` function, call the `poll()` method to automatically read ADC va
 ```cpp
 ad7441xr.poll();
 ```
+
+Refer to the `ad7441xr.h` file to get the complete list of public methods used to set ADC/DAC modes and values.
 
 ## License
 

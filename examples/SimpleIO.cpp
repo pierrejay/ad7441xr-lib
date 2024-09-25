@@ -24,12 +24,12 @@ AD7441XR swio(AD7441XR_CS_PIN, SPI,
 unsigned long lastReading = 0;
 unsigned long readingInterval = 500;
 
-// Formatting function for Serial output
+// Formatting functions for Serial output
+
 String chToStr(int ch) {
   return "Channel " + String((char)('A' + ch));
 }
 
-// Formatting function for Serial output
 String unitToStr(int unit) {
     switch (unit) {
         case 0:     return "";      break;
@@ -40,7 +40,6 @@ String unitToStr(int unit) {
     }
 }
 
-// Formatting function for Serial output
 String funcToStr(int func) {
     switch (func) {
         case 0:     return "HighZ";     break;
@@ -98,6 +97,7 @@ void setup()
     int ret = swio.begin();
     if (ret)
         Serial.println("AD7441XR init failed...");
+        while(1);
     else
         Serial.println("AD7441XR init success!");
 

@@ -305,7 +305,7 @@ int AD7441XR::_updateLiveStatus()
 	return 0;
 }
 
-int AD7441XR::loop()
+int AD7441XR::getAlertPinState()
 {
 	return digitalRead(_alertPin); 
 }
