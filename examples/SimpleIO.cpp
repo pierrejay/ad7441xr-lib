@@ -9,14 +9,14 @@
 #include <SPI.h>
 #include "ad7441xr.h"
 
-#define SPI_MISO D2
-#define SPI_MOSI D4
-#define SPI_SCK D3
+#define SPI_MISO    D2
+#define SPI_MOSI    D4
+#define SPI_SCK     D3
 
-#define AD7441XR_CHIP_ID ad74412r
-#define AD7441XR_CS_PIN D1
-#define AD7441XR_RST_PIN D0
-#define AD7441XR_ALERT_PIN -1
+#define AD7441XR_CHIP_ID    ad74412r
+#define AD7441XR_CS_PIN     D1
+#define AD7441XR_RST_PIN    D0
+#define AD7441XR_ALERT_PIN  -1
 
 AD7441XR swio(AD7441XR_CS_PIN, SPI,
               AD7441XR_CHIP_ID, AD7441XR_RST_PIN, AD7441XR_ALERT_PIN);
@@ -91,7 +91,6 @@ void displayIOs() {
 void setup()
 {
     Serial.begin(9600);
-    delay(3000);
 
     SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
     digitalWrite(AD7441XR_CS_PIN, HIGH);
@@ -121,14 +120,12 @@ void setup()
 
 void loop()
 {
-
     swio.poll();
 
-    // Affichage des valeurs sur port série
     if (millis() - lastReading >= readingInterval)
     {
-        displayIOs();
-        displayAlerts();
+        displayIOs();               // Display IO values on Serial port
+        displayAlerts();            // Display active alerts on Serial port
         Serial.println("---");
         lastReading = millis();
     }
