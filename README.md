@@ -42,19 +42,19 @@ ad7441xr.poll();
 
 You can call several methods to enable & set channels, either in `loop()` or in `setup()`. 
 ```cpp
-    // Enable channels A & B
-    swio.enableChannel(AD7441XR_CH_A, true);
-    swio.enableChannel(AD7441XR_CH_B, true);
+// Enable channels A & B
+swio.enableChannel(AD7441XR_CH_A, true);
+swio.enableChannel(AD7441XR_CH_B, true);
 
-    // Set channel functions to AI and AO
-    swio.setChannelFunc(AD7441XR_CH_A, AD7441XR_VOLTAGE_IN);
-    swio.setChannelFunc(AD7441XR_CH_B, AD7441XR_VOLTAGE_OUT);
+// Set channel functions to AI and AO
+swio.setChannelFunc(AD7441XR_CH_A, AD7441XR_VOLTAGE_IN);
+swio.setChannelFunc(AD7441XR_CH_B, AD7441XR_VOLTAGE_OUT);
 
-    // Start ADC continuous reading (put in setup())
-    swio.setAdcMode(AD7441XR_START_CONT);
+// Start ADC continuous reading (put in setup())
+swio.setAdcMode(AD7441XR_START_CONT);
 
-    // Set DAC to 3.14V on channel B = index 1
-    swio.setDac(1, 3.14);
+// Set DAC to 3.14V on channel B = index 1
+swio.setDac(1, 3.14);
 ```
 
 
