@@ -1,7 +1,7 @@
 /***************************************************************************//**
  *   @file   ad7441xr.cpp
  *   @brief  Source file of AD7441xR Driver.
- *   @author Ciprian Regus (ciprian.regus@analog.com)
+ *   @author Original author Ciprian Regus (ciprian.regus@analog.com), modified by Pierre Jay (pierre.jay@gmail.com)
 ********************************************************************************
  * Copyright 2022(c) Analog Devices, Inc.
  *
@@ -392,6 +392,12 @@ int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
 	return 0;
 }
 
+int AD7441XR::getChannelFunc(int ch)
+{
+	if (cfg.channel[ch].enabled) return cfg.channel[ch].func;
+   	else return -EINOP;	
+}
+
 void AD7441XR::_formatRegWrite(uint8_t reg, uint16_t val, uint8_t *buff)
 {
     buff[0] = reg;
@@ -669,6 +675,35 @@ long AD7441XR::getAlerts()
 }
 
 /**
+ * @brief Get alerts list
+ * @return Array of 16 "ad7441xr_alert_info" objects containing name and error status
+ */
+ad7441xr_alert_info* AD7441XR::getAlertList() 
+{
+	ad7441xr_alert_info alertList[16];
+	ad7441xr_alert_status *status = &cfg.alert_status;
+	
+    alertList[0] = (ad7441xr_alert_info){status->error_bits.VI_ERR_A, "VI_ERR_A"};
+    alertList[1] = (ad7441xr_alert_info){status->error_bits.VI_ERR_B, "VI_ERR_B"};
+    alertList[2] = (ad7441xr_alert_info){status->error_bits.VI_ERR_C, "VI_ERR_C"};
+    alertList[3] = (ad7441xr_alert_info){status->error_bits.VI_ERR_D, "VI_ERR_D"};
+    alertList[4] = (ad7441xr_alert_info){status->error_bits.HI_TEMP_ERR, "HI_TEMP_ERR"};
+    alertList[5] = (ad7441xr_alert_info){status->error_bits.CHARGE_PUMP_ERR, "CHARGE_PUMP_ERR"};
+    alertList[6] = (ad7441xr_alert_info){status->error_bits.ALDO5V_ERR, "ALDO5V_ERR"};
+    alertList[7] = (ad7441xr_alert_info){status->error_bits.AVDD_ERR, "AVDD_ERR"};
+    alertList[8] = (ad7441xr_alert_info){status->error_bits.DVCC_ERR, "DVCC_ERR"};
+    alertList[9] = (ad7441xr_alert_info){status->error_bits.ALDO1V8_ERR, "ALDO1V8_ERR"};
+    alertList[10] = (ad7441xr_alert_info){status->error_bits.ADC_CONV_ERR, "ADC_CONV_ERR"};
+    alertList[11] = (ad7441xr_alert_info){status->error_bits.ADC_SAT_ERR, "ADC_SAT_ERR"};
+    alertList[12] = (ad7441xr_alert_info){status->error_bits.SPI_SCLK_CNT_ERR, "SPI_SCLK_CNT_ERR"};
+    alertList[13] = (ad7441xr_alert_info){status->error_bits.SPI_CRC_ERR, "SPI_CRC_ERR"};
+    alertList[14] = (ad7441xr_alert_info){status->error_bits.CAL_MEM_ERR, "CAL_MEM_ERR"};
+    alertList[15] = (ad7441xr_alert_info){status->error_bits.RESET_OCCURRED, "RESET_OCCURRED"};
+
+	return alertList;
+}
+
+/**
  * @brief Check if ADC is busy
  * @return Busy state (0 or 1).
  */
@@ -763,7 +798,24 @@ int AD7441XR::setDac(int ch, float val)
    ret = _setDacCode(ch, code);
    if (ret) return -EINOP;
 
+   cfg.channel[ch].dac_real = val;
+
    return 0;
+}
+
+/**
+ * @brief Get real DAC setpoint
+ * @param ch - ADC channel
+ * @return Real DAC setpoint (V or mA) in case of success, negative error code otherwise.
+ */
+float AD7441XR::getDac(int ch)
+{
+   int is_dac = 0;
+   if (cfg.channel[ch].func == AD7441XR_VOLTAGE_OUT || cfg.channel[ch].func == AD7441XR_CURRENT_OUT) is_dac = 1;
+
+   if ((cfg.channel[ch].enabled) && (is_dac)) return cfg.channel[ch].dac_real;
+   else return -EINOP;
+
 }
 
 /**
@@ -800,7 +852,6 @@ int AD7441XR::getDi(int ch)
    return -EINOP;
 
 }
-
 
 /**
  * @brief Set DIN Threshold value

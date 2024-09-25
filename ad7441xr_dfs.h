@@ -1,7 +1,7 @@
 /***************************************************************************//**
  *   @file   ad7441xr_dfs.h
  *   @brief  Defines file of AD7441xR Driver.
- *   @author Ciprian Regus (ciprian.regus@analog.com)
+ *   @author Original author Ciprian Regus (ciprian.regus@analog.com), modified by Pierre Jay (pierre.jay@gmail.com)
 ********************************************************************************
  * Copyright 2022(c) Analog Devices, Inc.
  *
@@ -376,6 +376,19 @@ union ad7441xr_alert_status {
 	uint16_t value;
 };
 
+
+/**
+ * @brief Used to store each alert status and name individually.
+ */
+struct ad7441xr_alert_info {
+    bool status;
+    String name;
+};
+
+
+/**
+ * @brief Used to indicate the unit of the current ADC reading.
+ */
 enum ad7441xr_adc_unit {
 	U_NULL,
 	U_V,
