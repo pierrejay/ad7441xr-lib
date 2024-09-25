@@ -13,7 +13,7 @@ This version is easier to use compared to the original AD library:
 
 ## Usage
 
-Include the library in your sketch, make sure you're using SPI as well and define pins:
+Include the library in your sketch, make sure you're using SPI as well:
 
 ```cpp
 #include <ad7441xr.h>
