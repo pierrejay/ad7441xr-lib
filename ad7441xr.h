@@ -153,7 +153,7 @@ class AD7441XR {
 	    int setAdcMode(enum ad7441xr_conv_seq mode);			// Set ADC conversion mode (idle, single, continuous, off)
 	    int requestAdc();			 	 						// Request a new ADC conversion (only works in single mode)
         long getAlerts();                                       // Get alerts bits
-        ad7441xr_alert_info* getAlertList();                    // Get an array of "ad7441xr_alert_info" objects containing name and status for each alert type
+        bool getAlertList(ad7441xr_alert_info alertList[16]);   // Get an array of "ad7441xr_alert_info" objects containing name and status for each alert type
 	    int isAdcBusy();				 						// Checks if ADC is busy (busy state is updated by the pollADC function)
 	    float getAdc(int ch);			 						// Gets latest real ADC value (in V, mA or ohm depending on mode). Will return an error code if channel disabled.
 	    long getAdcRaw(int ch);			 					    // Gets latest raw ADC value (0-65535). Will return an error code if channel disabled.

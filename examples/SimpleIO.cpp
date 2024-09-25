@@ -5,7 +5,6 @@
  * Date: 2024/09/22
  */
 
-
 #include <Arduino.h>
 #include <SPI.h>
 #include "ad7441xr.h"
@@ -25,55 +24,12 @@ AD7441XR swio(AD7441XR_CS_PIN, SPI,
 unsigned long lastReading = 0;
 unsigned long readingInterval = 500;
 
-int checkAlerts(long alerts)
-{
-    if (alerts == 0)
-    {
-        return 0;
-    }
-    Serial.print("ALERTS DETECTED:");
-    if (alerts & 0x0001)
-        Serial.print(" VI_ERR_A");
-    if (alerts & 0x0002)
-        Serial.print(" VI_ERR_B");
-    if (alerts & 0x0004)
-        Serial.print(" VI_ERR_C");
-    if (alerts & 0x0008)
-        Serial.print(" VI_ERR_D");
-    if (alerts & 0x0010)
-        Serial.print(" HI_TEMP_ERR");
-    if (alerts & 0x0020)
-        Serial.print(" CHARGE_PUMP_ERR");
-    if (alerts & 0x0040)
-        Serial.print(" ALDO5V_ERR");
-    if (alerts & 0x0080)
-        Serial.print(" AVDD_ERR");
-    if (alerts & 0x0100)
-        Serial.print(" DVCC_ERR");
-    if (alerts & 0x0200)
-        Serial.print(" ALDO1V8_ERR");
-    if (alerts & 0x0400)
-        Serial.print(" ADC_CONV_ERR");
-    if (alerts & 0x0800)
-        Serial.print(" ADC_SAT_ERR");
-    if (alerts & 0x1000)
-        Serial.print(" SPI_SCLK_CNT_ERR");
-    if (alerts & 0x2000)
-        Serial.print(" SPI_CRC_ERR");
-    if (alerts & 0x4000)
-        Serial.print(" CAL_MEM_ERR");
-    if (alerts & 0x8000)
-        Serial.print(" RESERVED");
-    Serial.println();
-    return 1;
-}
-
-// Formatting function to convert channel no to channel name
+// Formatting function for Serial output
 String chToStr(int ch) {
   return "Channel " + String((char)('A' + ch));
 }
 
-// Formatting function to convert unit code to unit name
+// Formatting function for Serial output
 String unitToStr(int unit) {
     switch (unit) {
         case 0:     return "";      break;
@@ -84,7 +40,7 @@ String unitToStr(int unit) {
     }
 }
 
-// Formatting function to convert function code to function name
+// Formatting function for Serial output
 String funcToStr(int func) {
     switch (func) {
         case 0:     return "HighZ";     break;
@@ -97,6 +53,38 @@ String funcToStr(int func) {
         case 7:     // Fallthrough
         case 8:     return "DI 24V";    break;
         default:    return "U_ERR";     break;
+    }
+}
+
+void displayAlerts() {
+    ad7441xr_alert_info AlertList[16];
+    if (ad7441xr.getAlertList(alertList)) {
+        Serial.println("!!! Active alerts:");
+        for (int i = 0; i < 16; i++) {
+            if (alertList[i].status) {
+                Serial.print(" ");
+                Serial.print(alertList[i].name);
+            }
+        }
+        Serial.println();
+    }
+}
+
+void displayIOs() {
+    for (int i = 0; i < 4; i++) {
+        if (swio.isEnabled(i)) {
+            Serial.print(chToStr(i));
+            Serial.print(": Mode ");
+            Serial.print(funcToStr(swio.getChannelFunc(i)));
+            Serial.print(", ADC reading: ");
+            Serial.print(swio.getAdc(i));
+            Serial.print(" ");
+            Serial.print(unitToStr(swio.getAdcUnit(i)));
+            Serial.print(", ADC code: ");
+            Serial.print(swio.getAdcRaw(i));
+            Serial.print(", DAC code: ");
+            Serial.println(swio.getDacRaw(i));
+        }
     }
 }
 
@@ -127,8 +115,8 @@ void setup()
     // Start ADC continuous reading
     swio.setAdcMode(AD7441XR_START_CONT);
 
-    // Set DAC to 5.5V on channel 4 (index 3)
-    swio.setDac(3, 5.5);
+    // Set DAC to 3.14V on channel 4 (index 3)
+    swio.setDac(3, 3.14);
 }
 
 void loop()
@@ -139,23 +127,9 @@ void loop()
     // Affichage des valeurs sur port série
     if (millis() - lastReading >= readingInterval)
     {
-        lastReading = millis();
-        checkAlerts(swio.getAlerts()); // Display alerts if detected
-        for (int i = 0; i < 4; i++)
-        {
-            if (swio.isEnabled(i))
-            {
-                Serial.print(chToStr(i));
-                Serial.print(": ");
-                Serial.print(swio.getAdc(i));
-                Serial.print(" ");
-                Serial.print(unitToStr(swio.getAdcUnit(i)));
-                Serial.print(", ADC code: ");
-                Serial.print(swio.getAdcRaw(i));
-                Serial.print(", DAC code: ");
-                Serial.println(swio.getDacRaw(i));
-            }
-        }
+        displayIOs();
+        displayAlerts();
         Serial.println("---");
+        lastReading = millis();
     }
 }

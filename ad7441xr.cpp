@@ -676,11 +676,10 @@ long AD7441XR::getAlerts()
 
 /**
  * @brief Get alerts list
- * @return Array of 16 "ad7441xr_alert_info" objects containing name and error status
+ * @return Modifies an array of 16 "ad7441xr_alert_info" objects passed as argument
  */
-ad7441xr_alert_info* AD7441XR::getAlertList() 
+void AD7441XR::getAlertList(ad7441xr_alert_info alertList[16]) 
 {
-	ad7441xr_alert_info alertList[16];
 	ad7441xr_alert_status *status = &cfg.alert_status;
 	
     alertList[0] = (ad7441xr_alert_info){status->error_bits.VI_ERR_A, "VI_ERR_A"};
@@ -700,7 +699,7 @@ ad7441xr_alert_info* AD7441XR::getAlertList()
     alertList[14] = (ad7441xr_alert_info){status->error_bits.CAL_MEM_ERR, "CAL_MEM_ERR"};
     alertList[15] = (ad7441xr_alert_info){status->error_bits.RESET_OCCURRED, "RESET_OCCURRED"};
 
-	return alertList;
+    return status->value != 0;
 }
 
 /**
