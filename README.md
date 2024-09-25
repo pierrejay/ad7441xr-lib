@@ -49,7 +49,7 @@ ad7441xr.poll();
 - `int setAdcMode(enum ad7441xr_conv_seq mode)`: Set ADC conversion mode (idle, single, continuous, off)
 - `int requestAdc()`: Request a new ADC conversion (only works in single mode)
 - `long getAlerts()`: Get alerts bits
-- `ad7441xr_alert_info* getAlertList()`: Get an array of alert info objects
+- `bool getAlertList(ad7441xr_alert_info[16])`: Fetch active alerts into an alert_info objects array
 - `int isAdcBusy()`: Check if ADC is busy
 - `float getAdc(int ch)`: Get latest real ADC value
 - `long getAdcRaw(int ch)`: Get latest raw ADC value
