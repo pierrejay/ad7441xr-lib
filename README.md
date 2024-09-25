@@ -13,10 +13,11 @@ This version is easier to use compared to the original AD library:
 
 ## Usage
 
-Include the library in your sketch:
+Include the library in your sketch, make sure you're using SPI as well and define pins:
 
 ```cpp
 #include <ad7441xr.h>
+#include <SPI.h>
 ```
 
 Initialize the AD7441XR object:
@@ -25,19 +26,46 @@ Initialize the AD7441XR object:
 AD7441XR ad7441xr(CS_PIN, SPI, AD74412R);
 ```
 
-In your `setup()` function, initialize the chip:
+In your `setup()` function, initialize SPI and the chip:
 
 ```cpp
+SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+digitalWrite(AD7441XR_CS_PIN, HIGH);
 ad7441xr.begin();
 ```
 
-In your `loop()` function, call the `poll()` method to automatically read ADC values:
+In your `loop()` function, call the `poll()` method to automatically update ADC values:
 
 ```cpp
 ad7441xr.poll();
 ```
 
-Refer to the `ad7441xr.h` file to get the complete list of public methods used to set ADC/DAC modes and values.
+You can call several methods to enable & set channels, either in `loop()` or in `setup()`. 
+```cpp
+    // Enable channels A & B
+    swio.enableChannel(AD7441XR_CH_A, true);
+    swio.enableChannel(AD7441XR_CH_B, true);
+
+    // Set channel functions to AI and AO
+    swio.setChannelFunc(AD7441XR_CH_A, AD7441XR_VOLTAGE_IN);
+    swio.setChannelFunc(AD7441XR_CH_B, AD7441XR_VOLTAGE_OUT);
+
+    // Start ADC continuous reading (put in setup())
+    swio.setAdcMode(AD7441XR_START_CONT);
+
+    // Set DAC to 3.14V on channel B = index 1
+    swio.setDac(1, 3.14);
+```
+
+
+If your `poll()` function is executed frequently, and the chip is set in continuous ADC reading mode, ADC values can be accessed at any point of the code with get methods :
+
+```cpp
+float adcValue = swio.getAdc(i);    // ADC value
+int adcUnit = swio.getAdcUnit(i);   // ADC unit code (1=V, 2=mA...)
+```
+
+Refer to the `ad7441xr.h` file to get the complete list of public methods included in the library.
 
 ## License
 

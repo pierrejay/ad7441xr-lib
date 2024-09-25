@@ -149,31 +149,31 @@ class AD7441XR {
         int _setMux(uint32_t, enum ad7441xr_adc_mux);
         int _setRange(uint32_t, enum ad7441xr_adc_range);
         int _getDiState(uint32_t, uint16_t *);
-    
-    public:
-        AD7441XR(int, SPIClass &spi,  enum ad7441xr_chip_id, int rstPin = -1, int alertPin = -1);
 
-        int begin();					 						// Initialize AD7441XR chip (method to be called in setup)
-	    int poll();					 						    // Fetch ADC value and status bits
-	    int enableChannel(int ch, bool enable); 				// Enable ADC channel
-	    int isEnabled(int ch);                                  // Get enabled channel state
-        int setChannelFunc(int ch, enum ad7441xr_op_mode func);	// Set channel function
-        int getChannelFunc(int ch);	                            // Get channel function
-	    int setAdcMode(enum ad7441xr_conv_seq mode);			// Set ADC conversion mode (idle, single, continuous, off)
-	    int requestAdc();			 	 						// Request a new ADC conversion (only works in single mode)
+    public:
+        AD7441XR(int, SPIClass &spi, enum ad7441xr_chip_id, int rstPin = -1, int alertPin = -1);
+        
+        int begin();                                            // Initialize AD7441XR chip (method to be called in setup)
+        int poll();                                             // Fetch ADC value and status bits
+        int enableChannel(int ch, bool enable);                 // Enable ADC channel
+        int isEnabled(int ch);                                  // Get enabled channel state
+        int setChannelFunc(int ch, enum ad7441xr_op_mode func); // Set channel function
+        int getChannelFunc(int ch);                             // Get channel function
+        int setAdcMode(enum ad7441xr_conv_seq mode);            // Set ADC conversion mode (idle, single, continuous, off)
+        int requestAdc();                                       // Request a new ADC conversion (only works in single mode)
         long getAlerts();                                       // Get alerts bits
         bool getAlertList(ad7441xr_alert_info alertList[16]);   // Get an array of "ad7441xr_alert_info" objects containing name and status for each alert type
-	    int isAdcBusy();				 						// Checks if ADC is busy (busy state is updated by the pollADC function)
-	    float getAdc(int ch);			 						// Gets latest real ADC value (in V, mA or ohm depending on mode). Will return an error code if channel disabled.
-	    long getAdcRaw(int ch);			 					    // Gets latest raw ADC value (0-65535). Will return an error code if channel disabled.
-	    float getSingleAdc(int ch);		 						// Get one shot clear ADC value (clear value in V, mA or ohm depending on mode)
+        int isAdcBusy();                                        // Checks if ADC is busy (busy state is updated by the pollADC function)
+        float getAdc(int ch);                                   // Gets latest real ADC value (in V, mA or ohm depending on mode). Will return an error code if channel disabled.
+        long getAdcRaw(int ch);                                 // Gets latest raw ADC value (0-65535). Will return an error code if channel disabled.
+        float getSingleAdc(int ch);                             // Get one shot clear ADC value (clear value in V, mA or ohm depending on mode)
         int getAdcUnit(int ch);                                 // Get ADC unit (0, V, mA, ohm)
-	    int setDac(int ch, float val);	 	    				// Set DAC value (0-11 V in voltage output mode or 0-25 mA in current output mode). Only works in DAC mode.
-        float getDac(int ch);	 	    					    // Get real DAC value (in V or mA depending on mode). Will return an error code if channel not in output mode.
-	    long getDacRaw(int ch);	 	    					    // Get raw DAC code (0-65535). Only works in DAC mode.
+        int setDac(int ch, float val);                          // Set DAC value (0-11 V in voltage output mode or 0-25 mA in current output mode). Only works in DAC mode.
+        float getDac(int ch);                                   // Get real DAC value (in V or mA depending on mode). Will return an error code if channel not in output mode.
+        long getDacRaw(int ch);                                 // Get raw DAC code (0-65535). Only works in DAC mode.
         int getDi(int ch);                                      // Get DI status. Only works in DIN mode.
-	    int setDiThreshold(int ch, int mv); 					// Set DI threshold (in mV 0-16000) - by default a DI is initiated to 4V
-	    int getTemp(int ch);									// Get chip temperature
+        int setDiThreshold(int ch, int mv);                     // Set DI threshold (in mV 0-16000) - by default a DI is initiated to 4V
+        int getTemp(int ch);                                    // Get chip temperature
         ad7441xr_cfg getCfg();                                  // Get configuration structure to access chip parameters & DAC/ADC values directly
         int getAlertPinState();                                 // Monitor ALERT pin
         int softReset();                                        // Perform a soft reset

@@ -66,6 +66,15 @@ static const unsigned int ad7441xr_debounce_map[AD7441XR_DIN_DEBOUNCE_LEN] = {
 static const uint32_t conv_times_ad74413r[] = { 208, 833, 50000, 100000 };
 static const uint32_t conv_times_ad74412r[] = { 50000, 208};
 
+/**
+ * @brief Constructor
+ * @param cs - Chip CS pin
+ * @param spi - Pointer to user SPI class
+ * @param id - Chip type : AD7441{2,3}R
+ * @param rst - Chip RST pin
+ * @param alrt - Chip ALERT pin
+ * @return 0 in case of success, negative error code otherwise.
+ */
 AD7441XR::AD7441XR(int cs, SPIClass &spi, enum ad7441xr_chip_id id, int rst, int alrt) :
 	_cs(cs), spi(spi), chipId(id), _rstPin(rst), _alertPin(alrt)	
 {
@@ -88,6 +97,12 @@ AD7441XR::AD7441XR(int cs, SPIClass &spi, enum ad7441xr_chip_id id, int rst, int
    	cfg.rst_pin = rst;
 }
 
+/**
+ * @brief Enable channel
+ * @param ch - ADC channel
+ * @param en - Channel target state
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::enableChannel(int ch, bool en)
 {
     int ret;
@@ -109,16 +124,30 @@ int AD7441XR::enableChannel(int ch, bool en)
 	return 0;
 }
 
+/**
+ * @brief Check if channel is enabled
+ * @param ch - ADC channel
+ * @return Channel enable state
+ */
 int AD7441XR::isEnabled(int ch)
 {
     return cfg.channel[ch].enabled;
 }
 
+/**
+ * @brief Clear chip errors
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_clearErrors()
 {
 	return _writeRegister(AD7441XR_ALERT_STATUS, AD7441XR_ERR_CLR_MASK);
 }
 
+/**
+ * @brief Get active channels
+ * @param nb_channels - Pointer to active channels buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_getActiveChannels(uint8_t *nb_channels)
 {
 	int ret;
@@ -134,12 +163,24 @@ int AD7441XR::_getActiveChannels(uint8_t *nb_channels)
 	return 0;
 }
 
+/**
+ * @brief Get raw ADC result
+ * @param ch - ADC channel
+ * @param val - Pointer to value buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_getRawAdcResult(uint32_t ch, uint16_t *val)
 {
 	_readRegister(AD7441XR_ADC_RESULT(ch), val);
 	return 0;
 }
 
+/**
+ * @brief Get ADC rejection mode
+ * @param ch - Channel
+ * @param val - Pointer to rejection mode buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_getAdcRejection(uint32_t ch, enum ad7441xr_rejection *val)
 {
 	int ret;
@@ -156,6 +197,12 @@ int AD7441XR::_getAdcRejection(uint32_t ch, enum ad7441xr_rejection *val)
 	return 0;
 }
 
+/**
+ * @brief Get ADC single value (uint16)
+ * @param ch - ADC channel
+ * @param val - Pointer to ADC value buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_getAdcSingle(uint32_t ch, uint16_t *val)
 {
 	int ret;
@@ -207,6 +254,12 @@ int AD7441XR::_getAdcSingle(uint32_t ch, uint16_t *val)
 	return 0;
 }
 
+/**
+ * @brief Get single ADC value (structure)
+ * @param ch - ADC channel
+ * @param val - Pointer to ADC value structure
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_getAdcSingle(uint32_t ch, struct ad7441xr_adc_value *val)
 {
 	int ret;
@@ -278,6 +331,10 @@ int AD7441XR::_getAdcSingle(uint32_t ch, struct ad7441xr_adc_value *val)
 	return 0;
 }
 
+/**
+ * @brief Update alert status bits
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_updateAlertStatus()
 {
 	int ret;
@@ -290,6 +347,10 @@ int AD7441XR::_updateAlertStatus()
 	return _clearErrors();	
 }
 
+/**
+ * @brief Update live status bits
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_updateLiveStatus()
 {
 	int ret;
@@ -305,11 +366,20 @@ int AD7441XR::_updateLiveStatus()
 	return 0;
 }
 
+/**
+ * @brief Get alert pin state
+ * @return Alert pin state
+ */
 int AD7441XR::getAlertPinState()
 {
 	return digitalRead(_alertPin); 
 }
 
+/**
+ * @brief Set ADC conversion mode
+ * @param status - ADC conversion mode to set
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_setAdcConversions(enum ad7441xr_conv_seq status)
 {
 	int ret;
@@ -322,6 +392,12 @@ int AD7441XR::_setAdcConversions(enum ad7441xr_conv_seq status)
 	return 0;
 }
 
+/**
+ * @brief Set ADC channel function
+ * @param addr - ADC channel
+ * @param func - ADC function code to set
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
 {
     int ret;
@@ -392,12 +468,24 @@ int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
 	return 0;
 }
 
+/**
+ * @brief Get ADC channel function
+ * @param ch - ADC channel
+ * @return Channel function code in case of success, negative error code otherwise.
+ */
 int AD7441XR::getChannelFunc(int ch)
 {
 	if (cfg.channel[ch].enabled) return cfg.channel[ch].func;
    	else return -EINOP;	
 }
 
+/**
+ * @brief Format SPI message
+ * @param addr - SPI register address
+ * @param mask - Write value
+ * @param val - Formatted message buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 void AD7441XR::_formatRegWrite(uint8_t reg, uint16_t val, uint8_t *buff)
 {
     buff[0] = reg;
@@ -405,6 +493,12 @@ void AD7441XR::_formatRegWrite(uint8_t reg, uint16_t val, uint8_t *buff)
 	buff[3] = crc8(_crc_table, buff, 3, 0);
 }
 
+/**
+ * @brief Read register (w/ CRC check)
+ * @param addr - SPI register address
+ * @param val - Pointer to read buffer
+ * @return 0 in case of success, negative error code otherwise.
+ */
 int AD7441XR::_readRegister(uint32_t addr, uint16_t *val)
 {
     int ret;
@@ -425,6 +519,11 @@ int AD7441XR::_readRegister(uint32_t addr, uint16_t *val)
 	return 0;
 }
 
+/**
+ * @brief Read register (raw value)
+ * @param addr - SPI register address
+ * @param val - Pointer to read buffer
+ */
 int AD7441XR::_readRegisterRaw(uint32_t addr, uint8_t *val)
 {
     //int ret;
@@ -461,6 +560,9 @@ int AD7441XR::_readRegisterRaw(uint32_t addr, uint8_t *val)
     return 0;
 }
 
+/**
+ * @brief Chip communication init test
+ */
 int AD7441XR::_scratchTest()
 {
 	int ret;
@@ -481,6 +583,9 @@ int AD7441XR::_scratchTest()
 	return 0;
 }
 
+/**
+ * @brief Perform a Soft Reset
+ */
 int AD7441XR::softReset()
 {
 	int ret;
@@ -511,8 +616,15 @@ int AD7441XR::softReset()
 		cfg.channel[i].dac_clr = 0;
 		cfg.channel[i].din_threshold = 0;
 	}
+	return 0;
 }
 
+/**
+ * @brief Update chip SPI register from mask
+ * @param addr - SPI register address
+ * @param mask - Bitmask
+ * @param val - Write value
+ */
 int AD7441XR::_updateRegister(uint32_t addr, uint16_t mask, uint16_t val)
 {
     int ret;
@@ -528,6 +640,11 @@ int AD7441XR::_updateRegister(uint32_t addr, uint16_t mask, uint16_t val)
 	return _writeRegister(addr, c_val);
 }
 
+/**
+ * @brief Write chip SPI register
+ * @param addr - SPI register address
+ * @param val - Write value
+ */
 int AD7441XR::_writeRegister(uint32_t addr, uint16_t val)
 
 {
