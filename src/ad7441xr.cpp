@@ -795,7 +795,7 @@ long AD7441XR::getAlerts()
  * @brief Get alerts list
  * @return Modifies an array of 16 "ad7441xr_alert_info" objects passed as argument
  */
-void AD7441XR::getAlertList(ad7441xr_alert_info alertList[16]) 
+bool AD7441XR::getAlertList(ad7441xr_alert_info alertList[16]) 
 {
 	ad7441xr_alert_status *status = &cfg.alert_status;
 	
