@@ -1,0 +1,20 @@
+{
+    "name": "AD7441XR",
+    "version": "1.0.0",
+    "description": "Arduino library for the AD7441xR chips (AD74412R, AD74413R), based on the original Analog Devices C implementation.",
+    "keywords": "arduino, signal, input-output, ad7441xr",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/pierrejay/ad7441xr-lib"
+    },
+    "authors": [
+      {
+        "name": "Pierre Jay",
+        "email": "pierre.jay@gmail.com",
+        "maintainer": true
+      }
+    ],
+    "license": "MIT",
+    "frameworks": "arduino",
+    "platforms": "*"
+}
