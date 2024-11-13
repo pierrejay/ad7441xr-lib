@@ -121,7 +121,7 @@ int AD7441XR::enableChannel(int ch, bool en)
 	ret = _setAdcConversions(prec_conv);
 	if (ret) return ret;
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -222,7 +222,7 @@ int AD7441XR::_getAdcSingle(uint32_t ch, uint16_t *val)
 	if (ret)
 		return ret;
 
-	delayMicroseconds(100); // The user must wait 100us before ADC starts doing conversions if the ADC was powered down
+	delayMicroseconds(AD7441XR_ADC_CONVERSION_DELAY_US); // The user must wait 100us before ADC starts doing conversions if the ADC was powered down
 
 	ret = _getAdcRejection(ch, &rejection);
 	if (ret)
@@ -292,12 +292,10 @@ int AD7441XR::_getAdcSingle(uint32_t ch, struct ad7441xr_adc_value *val)
 		break;
 	case AD7441XR_CURRENT_IN_EXT_HART:
 		if (chipId == ad74412r)
-			//return -ENOTSUP;
-			return -134;
+			return AD7441XR_ERR_NOT_SUPPORTED;
 	case AD7441XR_CURRENT_IN_LOOP_HART:
 		if (chipId == ad74412r)
-			//return -ENOTSUP;
-			return -134;
+			return AD7441XR_ERR_NOT_SUPPORTED;
 	case AD7441XR_CURRENT_IN_EXT:
 	case AD7441XR_CURRENT_IN_LOOP:
 		val->integer = no_os_div_u64_rem(adc_code * AD7441XR_RANGE_2V5_SCALE,
@@ -316,8 +314,7 @@ int AD7441XR::_getAdcSingle(uint32_t ch, struct ad7441xr_adc_value *val)
 						 &val->decimal);
 		break;
 	default:
-		//return -EINVAL;
-		return -22;
+		return AD7441XR_ERR_INVALID_PARAM;
 	}
 
 	cfg.channel[ch].adc_raw = adc_code;
@@ -389,7 +386,7 @@ int AD7441XR::_setAdcConversions(enum ad7441xr_conv_seq status)
 		return ret;
 	cfg.adc_conv = status;
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -398,8 +395,18 @@ int AD7441XR::_setAdcConversions(enum ad7441xr_conv_seq status)
  * @param func - ADC function code to set
  * @return 0 in case of success, negative error code otherwise.
  */
-int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
-{
+int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func) {
+    // Validation des paramètres
+    if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
+
+    // Vérification de la compatibilité du mode avec le modèle de chip
+    if ((chipId == ad74412r) && 
+        (func == AD7441XR_CURRENT_IN_EXT_HART || func == AD7441XR_CURRENT_IN_LOOP_HART)) {
+        return AD7441XR_ERR_NOT_SUPPORTED;
+    }
+
     int ret;
 
 	// Stop conversions before mode change
@@ -416,7 +423,7 @@ int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
 	if (ret) return ret;
 	cfg.channel[ch].func = AD7441XR_HIGH_Z;
 
-	delayMicroseconds(130); // Datasheet requirement between mode changes
+	delayMicroseconds(AD7441XR_MODE_CHANGE_DELAY_US); // Datasheet requirement between mode changes
 
 	// Enable requested function
 	ret = _updateRegister(AD7441XR_CH_FUNC_SETUP(ch), AD7441XR_CH_FUNC_SETUP_MASK, func);
@@ -463,9 +470,9 @@ int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func)
 	ret = _setAdcConversions(prec_conv);
 	if (ret) return ret;
 
-	delayMicroseconds(150); // Datasheet requirement before new DAC code write
+	delayMicroseconds(AD7441XR_DAC_WRITE_DELAY_US); // Datasheet requirement before new DAC code write
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -511,7 +518,7 @@ int AD7441XR::_readRegister(uint32_t addr, uint16_t *val)
 
 	expected_crc = crc8(_crc_table, _rxBuffer, 3, 0);
 	if (expected_crc != _rxBuffer[3])
-		return -22;
+		return AD7441XR_ERR_CRC;
 	
 
 	*val = no_os_get_unaligned_be16(&_rxBuffer[1]);
@@ -526,7 +533,7 @@ int AD7441XR::_readRegister(uint32_t addr, uint16_t *val)
  */
 int AD7441XR::_readRegisterRaw(uint32_t addr, uint8_t *val)
 {
-    //int ret;
+
 	/**
 	 * Reading a register on AD74413r requires writing the address to the READ_SELECT
 	 * register first and then doing another spi read, which will contain the requested
@@ -557,7 +564,7 @@ int AD7441XR::_readRegisterRaw(uint32_t addr, uint8_t *val)
 	digitalWrite(_cs, HIGH);
 	spi.endTransaction();
     
-    return 0;
+    return AD7441XR_SUCCESS;
 }
 
 /**
@@ -578,7 +585,7 @@ int AD7441XR::_scratchTest()
 		return ret;
 
 	if (val != test_val)
-		return -22;
+		return AD7441XR_ERR_COMM_FAIL;
 
 	return 0;
 }
@@ -592,12 +599,13 @@ int AD7441XR::softReset()
 
 	ret = _writeRegister(AD7441XR_CMD_KEY, AD7441XR_CMD_KEY_RESET_1);
 	if (ret)
-		return ret;
+		return AD7441XR_ERR_COMM_FAIL;
 
-	return _writeRegister(AD7441XR_CMD_KEY, AD7441XR_CMD_KEY_RESET_2);
+	ret = _writeRegister(AD7441XR_CMD_KEY, AD7441XR_CMD_KEY_RESET_2);
+	if (ret)
+		return AD7441XR_ERR_COMM_FAIL;
 
-	/* Time taken for device reset (datasheet value = 1ms) */
-	delay(1);
+	delay(AD7441XR_RESET_DELAY_MS);
 
 	// Reset config
 	cfg.adc_conv = AD7441XR_STOP_PWR_UP;
@@ -607,8 +615,8 @@ int AD7441XR::softReset()
 	for (int i = 0 ; i < AD7441XR_N_CHANNELS ; i++) {
 		cfg.channel[i].enabled = false;
 		cfg.channel[i].func = AD7441XR_HIGH_Z;
-		cfg.channel[i].adc_raw = -EINOP;
-		cfg.channel[i].adc_real = -EINOP;
+		cfg.channel[i].adc_raw = AD7441XR_ERR_CHANNEL_DISABLED;
+		cfg.channel[i].adc_real = AD7441XR_ERR_CHANNEL_DISABLED;
 		cfg.channel[i].adc_unit = U_NULL;
 		cfg.channel[i].adc_timestamp = 0;
 		cfg.channel[i].adc_sample_rate = AD7441XR_ADC_SAMPLE_20HZ;
@@ -616,7 +624,7 @@ int AD7441XR::softReset()
 		cfg.channel[i].dac_clr = 0;
 		cfg.channel[i].din_threshold = 0;
 	}
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -645,22 +653,18 @@ int AD7441XR::_updateRegister(uint32_t addr, uint16_t mask, uint16_t val)
  * @param addr - SPI register address
  * @param val - Write value
  */
-int AD7441XR::_writeRegister(uint32_t addr, uint16_t val)
-
-{
+int AD7441XR::_writeRegister(uint32_t addr, uint16_t val) {
     _formatRegWrite(addr, val, _txBuffer);
 
-	spi.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE1));
-	digitalWrite(_cs, LOW);
-	for (int i = 0; i < AD7441XR_FRAME_SIZE; i++)
-   {
-      spi.transfer(_txBuffer[i]);
-   }
-// 	spi.transfer(_txBuffer, NULL, AD7441XR_FRAME_SIZE, NULL);
-	digitalWrite(_cs, HIGH);
-	spi.endTransaction();
+    spi.beginTransaction(SPISettings(AD7441XR_SPI_MAX_FREQ, MSBFIRST, AD7441XR_SPI_MODE));
+    digitalWrite(_cs, LOW);
+    
+    spi.transfer(_txBuffer, AD7441XR_FRAME_SIZE);
+    
+    digitalWrite(_cs, HIGH);
+    spi.endTransaction();
 
-	return 0;
+    return AD7441XR_SUCCESS;
 }
 
 
@@ -674,27 +678,24 @@ int AD7441XR::begin()
 {
    int ret;
 
-	if (usingResetPin == true)
-	{
+	if (usingResetPin == true) {
 		digitalWrite(_rstPin, HIGH);
 	}
 
 	crc8_populate_msb(_crc_table, AD7441XR_CRC_POLYNOMIAL);
 	
-	//  After power-up, the user must wait approximately 10 ms
-	//  before any transaction to the device can take place.
-	delay(10);
+	delay(AD7441XR_STARTUP_DELAY_MS);
 
 	ret = softReset();
-	if (ret) return ret;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 
 	ret = _clearErrors();
-	if (ret) return ret;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 
 	ret = _scratchTest();
-	if (ret) return ret;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 	
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -721,11 +722,10 @@ int AD7441XR::poll()
 
 	// Update Live status
 	ret = _updateLiveStatus();
-	if (ret) return ret;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 
-	// Update Error status
 	ret = _updateAlertStatus();
-	if (ret) return ret;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 
 	if (poll_mode > 0) // If ADC enabled, check if conversion ready and fetch ADC values accordingly
 	{
@@ -736,17 +736,17 @@ int AD7441XR::poll()
 				if (cfg.channel[i].enabled)
 				{
 					ret = _pollAdc(i);
-					if (ret) return ret;
+					if (ret) return AD7441XR_ERR_COMM_FAIL;
 				}
 			}
 			// Clear the adc ready flag after fetching values
 			ret = _updateRegister(AD7441XR_LIVE_STATUS, AD7441XR_ADC_RDY_MASK, 1);
-			if (ret) return ret;
+			if (ret) return AD7441XR_ERR_COMM_FAIL;
 			cfg.adc_rdy = 0;
 		}
 	}
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -759,9 +759,9 @@ int AD7441XR::setAdcMode(enum ad7441xr_conv_seq mode)
 	int ret;
 
 	ret = _setAdcConversions(mode);
-	if (ret) return -EINOP;
+	if (ret) return AD7441XR_ERR_COMM_FAIL;
 	
-	return ret;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -774,12 +774,12 @@ int AD7441XR::requestAdc()
 
 	if (cfg.adc_conv != AD7441XR_START_CONT) {
 		ret = _setAdcConversions(AD7441XR_START_SINGLE);
-		if (ret) return -EINOP;
+		if (ret) return AD7441XR_ERR_COMM_FAIL;
 		ret = _updateLiveStatus();
-		if (ret) return -EINOP;
+		if (ret) return AD7441XR_ERR_COMM_FAIL;
 	}
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -835,10 +835,16 @@ int AD7441XR::isAdcBusy()
  */
 float AD7441XR::getAdc(int ch)
 {
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
    
-   if (cfg.channel[ch].enabled) return cfg.channel[ch].adc_real;
-   else return -EINOP;
-
+   if (cfg.channel[ch].enabled) {
+       return cfg.channel[ch].adc_real;
+   }
+   else {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 }
 
 /**
@@ -848,10 +854,16 @@ float AD7441XR::getAdc(int ch)
  */
 long AD7441XR::getAdcRaw(int ch)
 {
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
    
-   if (cfg.channel[ch].enabled) return cfg.channel[ch].adc_raw;
-   else return -EINOP;
-
+   if (cfg.channel[ch].enabled) {
+       return cfg.channel[ch].adc_raw;
+   }
+   else {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 }
 
 /**
@@ -861,11 +873,17 @@ long AD7441XR::getAdcRaw(int ch)
  */
 float AD7441XR::getSingleAdc(int ch)
 {
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
+
    int ret;
    uint16_t val;
 
    ret = _getAdcSingle(ch, &val);
-   if (ret) return -EINOP;
+   if (ret) {
+       return AD7441XR_ERR_COMM_FAIL;
+   }
 
    return cfg.channel[ch].adc_real;
 }
@@ -877,10 +895,16 @@ float AD7441XR::getSingleAdc(int ch)
  */
 int AD7441XR::getAdcUnit(int ch)
 {
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
 
-   if (cfg.channel[ch].enabled) return cfg.channel[ch].adc_unit;
-   else return -EINOP;
-
+   if (cfg.channel[ch].enabled) {
+       return cfg.channel[ch].adc_unit;
+   }
+   else {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 }
 
 /**
@@ -889,34 +913,55 @@ int AD7441XR::getAdcUnit(int ch)
  * @param mval - DAC mv setpoint
  * @return 0 in case of success, negative error code otherwise.
  */
-int AD7441XR::setDac(int ch, float val)
-{
-   int ret;
-   int set;
-   
-   switch (cfg.channel[ch].func) {
-   case AD7441XR_VOLTAGE_OUT: {
-		if (val >= 0 && val <= 11) set = val * 1000;
-		else return -EINOP;
-		break;}
-   case AD7441XR_CURRENT_OUT: {
-		if (val >= 0 && val <= 25) set = val * 440; // 0-25 mA => 0-11 V
-		else return -EINOP;
-    	break;}
-   default:
-    	return -EINOP;
-   }
+int AD7441XR::setDac(int ch, float val) {
+    if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
 
-   uint32_t code;
-   ret = _dacVoltageToCode(set, &code);
-   if (ret) return -EINOP;
+    if (!cfg.channel[ch].enabled) {
+        return AD7441XR_ERR_CHANNEL_DISABLED;
+    }
 
-   ret = _setDacCode(ch, code);
-   if (ret) return -EINOP;
+    int ret;
+    int set;
+    
+    switch (cfg.channel[ch].func) {
+    case AD7441XR_VOLTAGE_OUT: {
+        if (val >= 0 && val <= 11) {
+            set = val * 1000;
+        }
+        else {
+            return AD7441XR_ERR_INVALID_PARAM;
+        }
+        break;
+    }
+    case AD7441XR_CURRENT_OUT: {
+        if (val >= 0 && val <= 25) {
+            set = val * 440; // 0-25 mA => 0-11 V
+        }
+        else {
+            return AD7441XR_ERR_INVALID_PARAM;
+        }
+        break;
+    }
+    default:
+        return AD7441XR_ERR_INVALID_MODE;
+    }
 
-   cfg.channel[ch].dac_real = val;
+    uint32_t code;
+    ret = _dacVoltageToCode(set, &code);
+    if (ret) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
 
-   return 0;
+    ret = _setDacCode(ch, code);
+    if (ret) {
+        return AD7441XR_ERR_COMM_FAIL;
+    }
+
+    cfg.channel[ch].dac_real = val;
+
+    return AD7441XR_SUCCESS;
 }
 
 /**
@@ -926,12 +971,20 @@ int AD7441XR::setDac(int ch, float val)
  */
 float AD7441XR::getDac(int ch)
 {
-   int is_dac = 0;
-   if (cfg.channel[ch].func == AD7441XR_VOLTAGE_OUT || cfg.channel[ch].func == AD7441XR_CURRENT_OUT) is_dac = 1;
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
 
-   if ((cfg.channel[ch].enabled) && (is_dac)) return cfg.channel[ch].dac_real;
-   else return -EINOP;
+   if (!cfg.channel[ch].enabled) {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 
+   if (cfg.channel[ch].func == AD7441XR_VOLTAGE_OUT || 
+       cfg.channel[ch].func == AD7441XR_CURRENT_OUT) {
+       return cfg.channel[ch].dac_real;
+   }
+   
+   return AD7441XR_ERR_INVALID_MODE;
 }
 
 /**
@@ -941,13 +994,20 @@ float AD7441XR::getDac(int ch)
  */
 long AD7441XR::getDacRaw(int ch)
 {
-   int is_dac;
-   if (cfg.channel[ch].func == AD7441XR_VOLTAGE_OUT || cfg.channel[ch].func == AD7441XR_CURRENT_OUT) is_dac = 1;
-   else is_dac = 0;
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
 
-   if ((cfg.channel[ch].enabled) && (is_dac)) return cfg.channel[ch].dac_raw;
-   else return -EINOP;
+   if (!cfg.channel[ch].enabled) {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 
+   if (cfg.channel[ch].func == AD7441XR_VOLTAGE_OUT || 
+       cfg.channel[ch].func == AD7441XR_CURRENT_OUT) {
+       return cfg.channel[ch].dac_raw;
+   }
+   
+   return AD7441XR_ERR_INVALID_MODE;
 }
 
 /**
@@ -957,16 +1017,20 @@ long AD7441XR::getDacRaw(int ch)
  */
 int AD7441XR::getDi(int ch)
 {
-   uint16_t state;
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
 
-	if (cfg.channel[ch].enabled) {
-		if ((cfg.channel[ch].func == AD7441XR_DIGITAL_INPUT) || (cfg.channel[ch].func == AD7441XR_DIGITAL_INPUT_LOOP)) {
-			return cfg.channel[ch].din_state;
-		}
-	} 
+   if (!cfg.channel[ch].enabled) {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
 
-   return -EINOP;
+   if ((cfg.channel[ch].func == AD7441XR_DIGITAL_INPUT) || 
+       (cfg.channel[ch].func == AD7441XR_DIGITAL_INPUT_LOOP)) {
+       return cfg.channel[ch].din_state;
+   }
 
+   return AD7441XR_ERR_INVALID_MODE;
 }
 
 /**
@@ -979,13 +1043,23 @@ int AD7441XR::setDiThreshold(int ch, int mv)
 {
    int ret;
 
-   if (mv >= 0 && mv <= 16000) {
-	ret = _setThreshold(ch, mv);
-	if (ret) return -EINOP;
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
    }
-   else return -EINOP;
 
-   return 0;
+   if (!cfg.channel[ch].enabled) {
+       return AD7441XR_ERR_CHANNEL_DISABLED;
+   }
+
+   if (mv >= 0 && mv <= 16000) {
+        ret = _setThreshold(ch, mv);
+        if (ret) return AD7441XR_ERR_COMM_FAIL;
+   }
+   else {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
+
+   return AD7441XR_SUCCESS;
 }
 
 /**
@@ -994,12 +1068,17 @@ int AD7441XR::setDiThreshold(int ch, int mv)
  */
 int AD7441XR::getTemp(int ch)
 {
+   if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+       return AD7441XR_ERR_INVALID_PARAM;
+   }
+
    uint16_t temp;
    int ret;
 
    ret = _getTemp(ch, &temp);
-   if (ret) return -EINOP;
-   else return temp;
+   if (ret) return AD7441XR_ERR_COMM_FAIL;
+   
+   return temp;
 }
 
 /**
@@ -1028,7 +1107,7 @@ int AD7441XR::_updateBusyRdy(union ad7441xr_live_status status)
 	cfg.adc_busy = busy;
 	cfg.adc_rdy = rdy;
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -1067,12 +1146,12 @@ int AD7441XR::_adcRawToReal(uint16_t code, ad7441xr_op_mode mode, float *val, ad
 		*unit = U_V;
 		break;}
 	case AD7441XR_CURRENT_IN_EXT_HART:
-		{if (cfg.chip_id == ad74412r)
-			return -ENOTSUP;}
+		if (cfg.chip_id == ad74412r)
+			return AD7441XR_ERR_NOT_SUPPORTED;
 	/* fallthrough */
 	case AD7441XR_CURRENT_IN_LOOP_HART:
-		{if (cfg.chip_id == ad74412r)
-			return -ENOTSUP;}
+		if (cfg.chip_id == ad74412r)
+			return AD7441XR_ERR_NOT_SUPPORTED;
 	/* fallthrough */
 	case AD7441XR_CURRENT_OUT: // Modified : measure output current in Current Output mode
 	case AD7441XR_CURRENT_IN_EXT:
@@ -1093,10 +1172,10 @@ int AD7441XR::_adcRawToReal(uint16_t code, ad7441xr_op_mode mode, float *val, ad
 		*unit = U_V;
 		break;}
 	default:
-		return -EINVAL;
+		return AD7441XR_ERR_INVALID_MODE;
 	}
 
-	return 0;
+	return AD7441XR_SUCCESS;
 }
 
 /**
@@ -1114,7 +1193,7 @@ int AD7441XR::_setThreshold(uint32_t ch, uint32_t mv)
 	uint32_t dac_threshold;
 
 	if (mv > AD7441XR_THRESHOLD_RANGE)
-		return -EINVAL;
+		return AD7441XR_ERR_INVALID_PARAM;
 
 	/** Set a fixed range (0 - 16 V) for the threshold, so it would not depend on Vadd. */
 	ret = _updateRegister(AD7441XR_DIN_THRESH, AD7441XR_DIN_THRESH_MODE_MASK, 1);
@@ -1147,7 +1226,7 @@ int AD7441XR::_setDebounce(uint32_t ch, uint16_t deb)
 	uint32_t debounce;
 
 	if (deb > 31)
-		return -EINVAL;
+		return AD7441XR_ERR_INVALID_PARAM;
 
 	ret = _updateRegister(AD7441XR_DIN_CONFIG(ch), AD7441XR_DEBOUNCE_TIME_MASK, deb);
 	if (ret)
@@ -1162,12 +1241,12 @@ int AD7441XR::_setDebounce(uint32_t ch, uint16_t deb)
  * @brief Converts a millivolt value in the corresponding DAC 13 bit code.
  * @param mvolts - The millivolts value.
  * @param code - The resulting DAC code.
- * @return 0 in case of success, -EINVAL otherwise
+ * @return 0 in case of success, AD7441XR_ERR_INVALID_PARAM otherwise
  */
 int AD7441XR::_dacVoltageToCode(uint32_t mvolts, uint32_t *code)
 {
 	if (mvolts > AD7441XR_DAC_RANGE)
-		return -EINVAL;
+		return AD7441XR_ERR_INVALID_PARAM;
 
 	*code = mvolts * NO_OS_BIT(AD7441XR_DAC_RESOLUTION) / AD7441XR_DAC_RANGE;
 
@@ -1233,7 +1312,7 @@ int AD7441XR::_pollAdc(uint32_t ch)
  * @param ch - The diagnostic channel on which the temperature reading
  * is assigned and enabled.
  * @param temp - The measured temperature (in degrees Celsius).
- * @return 0 in case of success, -EINVAL otherwise.
+ * @return 0 in case of success, error value otherwise.
  */
 int AD7441XR::_getTemp(uint32_t ch, uint16_t *temp)
 {
@@ -1264,7 +1343,7 @@ int AD7441XR::_getDiag(uint32_t ch, uint16_t *diag_code)
 
 	*diag_code = no_os_field_get(AD7441XR_DIAG_RESULT_MASK, *diag_code);
 
-	return ret;
+	return 0;
 }
 
 /**

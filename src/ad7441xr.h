@@ -80,6 +80,13 @@ struct ad7441xr_cfg
     union ad7441xr_alert_status alert_status;
 };
 
+/**
+ * @brief AD7441XR Driver Class
+ * 
+ * Internal functions are prefixed with an underscore (_), they return either 0 (success) or an error code.
+ * Public functions do not have an underscore prefix. They return an explicit error or success (AD7441XR_SUCCESS) code.
+ * 
+ */
 class AD7441XR {
     private:
         int _cs;
@@ -151,7 +158,15 @@ class AD7441XR {
         int _getDiState(uint32_t, uint16_t *);
 
     public:
-        AD7441XR(int, SPIClass &spi, enum ad7441xr_chip_id, int rstPin = -1, int alertPin = -1);
+        /**
+         * @brief Constructeur
+         * @param cs Pin CS (Chip Select)
+         * @param spi Référence à l'objet SPI
+         * @param id Identifiant du chip (AD74412R ou AD74413R)
+         * @param rstPin Pin de reset (optionnel, -1 si non utilisé)
+         * @param alertPin Pin d'alerte (optionnel, -1 si non utilisé)
+         */
+        AD7441XR(int cs, SPIClass &spi, enum ad7441xr_chip_id id, int rstPin = -1, int alertPin = -1);
         
         int begin();                                            // Initialize AD7441XR chip (method to be called in setup)
         int poll();                                             // Fetch ADC value and status bits

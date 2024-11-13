@@ -32,32 +32,32 @@ String chToStr(int ch) {
 
 String unitToStr(int unit) {
     switch (unit) {
-        case 0:     return "";      break;
-        case 1:     return "V";     break;
-        case 2:     return "mA";    break;
-        case 3:     return "ohm";   break;
-        default:    return "U_ERR"; break;
+        case U_NULL:  return "";      break;
+        case U_V:     return "V";     break;
+        case U_MA:    return "mA";    break;
+        case U_OHM:   return "ohm";   break;
+        default:      return "U_ERR"; break;
     }
 }
 
 String funcToStr(int func) {
     switch (func) {
-        case 0:     return "HighZ";     break;
-        case 1:     return "AO 10V";    break;
-        case 2:     return "AO 20mA";   break;
-        case 3:     return "AI 10V";    break;
-        case 4:     // Fallthrough
-        case 5:     return "AI 20mA";   break;
-        case 6:     return "AI RTD";    break;
-        case 7:     // Fallthrough
-        case 8:     return "DI 24V";    break;
-        default:    return "U_ERR";     break;
+        case AD7441XR_HIGH_Z:               return "HighZ";     break;
+        case AD7441XR_VOLTAGE_OUT:          return "AO 10V";    break;
+        case AD7441XR_CURRENT_OUT:          return "AO 20mA";   break;
+        case AD7441XR_VOLTAGE_IN:           return "AI 10V";    break;
+        case AD7441XR_CURRENT_IN_EXT:       // Fallthrough
+        case AD7441XR_CURRENT_IN_LOOP:      return "AI 20mA";   break;
+        case AD7441XR_RESISTANCE:           return "AI RTD";    break;
+        case AD7441XR_DIGITAL_INPUT:        // Fallthrough
+        case AD7441XR_DIGITAL_INPUT_LOOP:   return "DI 24V";    break;
+        default:                            return "U_ERR";     break;
     }
 }
 
 void displayAlerts() {
-    ad7441xr_alert_info AlertList[16];
-    if (ad7441xr.getAlertList(alertList)) {
+    ad7441xr_alert_info alertList[16];
+    if (swio.getAlertList(alertList)) {
         Serial.println("!!! Active alerts:");
         for (int i = 0; i < 16; i++) {
             if (alertList[i].status) {
@@ -95,11 +95,13 @@ void setup()
     digitalWrite(AD7441XR_CS_PIN, HIGH);
 
     int ret = swio.begin();
-    if (ret)
+    if (ret) {
         Serial.println("AD7441XR init failed...");
         while(1);
-    else
+    }
+    else {
         Serial.println("AD7441XR init success!");
+    }
 
     swio.enableChannel(AD7441XR_CH_A, true);
     swio.enableChannel(AD7441XR_CH_B, true);
