@@ -40,8 +40,6 @@
 #ifndef _AD7441XRDFS_H_
 #define _AD7441XRDFS_H_
 
-#define EINOP 32767
-
 #define AD7441XR_N_CHANNELS             4
 
 #define AD7441XR_CH_A                   0
@@ -191,6 +189,20 @@ enum ad7441xr_error {
     AD7441XR_ERR_CHANNEL_DISABLED = -6,
     AD7441XR_ERR_INVALID_MODE = -7
 };
+
+static constexpr const char* toString(ad7441xr_error error) {
+    switch (error) {
+        case AD7441XR_SUCCESS: return "success";
+        case AD7441XR_ERR_INVALID_PARAM: return "invalid_param";
+        case AD7441XR_ERR_COMM_FAIL: return "comm_fail";
+        case AD7441XR_ERR_CRC: return "crc_error";
+        case AD7441XR_ERR_TIMEOUT: return "timeout";
+        case AD7441XR_ERR_NOT_SUPPORTED: return "not_supported";
+        case AD7441XR_ERR_CHANNEL_DISABLED: return "channel_disabled";
+        case AD7441XR_ERR_INVALID_MODE: return "invalid_mode";
+        default: return "unknown_error";
+    }
+}
 
 /**
  * @brief The chips supported by this driver.
@@ -413,6 +425,17 @@ enum ad7441xr_adc_unit {
 	U_V,
 	U_MA,
 	U_OHM,
+};
+
+/**
+ * @brief GPO operation modes.
+ */
+enum ad7441xr_gpo_mode {
+    AD7441XR_GPO_100K_PULLDOWN = 0,    // 100kΩ pull-down resistor
+    AD7441XR_GPO_DATA = 1,             // Direct data control
+    AD7441XR_GPO_PARALLEL_MODE = 2,         // Parallel update mode
+    AD7441XR_GPO_COMP_OUT = 3,         // Digital input comparator output
+    AD7441XR_GPO_HIGH_Z = 4            // High impedance state
 };
 
 #endif

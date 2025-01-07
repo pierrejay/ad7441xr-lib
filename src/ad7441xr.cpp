@@ -37,8 +37,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
-#include <Arduino.h>
-#include <SPI.h>
 #include "ad7441xr.h"
 #include "crc8.h"
 #include "util.h"
@@ -483,7 +481,7 @@ int AD7441XR::setChannelFunc(int ch, enum ad7441xr_op_mode func) {
 int AD7441XR::getChannelFunc(int ch)
 {
 	if (cfg.channel[ch].enabled) return cfg.channel[ch].func;
-   	else return -EINOP;	
+   	else return AD7441XR_ERR_CHANNEL_DISABLED;	
 }
 
 /**
@@ -659,6 +657,7 @@ int AD7441XR::_writeRegister(uint32_t addr, uint16_t val) {
     spi.beginTransaction(SPISettings(AD7441XR_SPI_MAX_FREQ, MSBFIRST, AD7441XR_SPI_MODE));
     digitalWrite(_cs, LOW);
     
+    // Utilisation d'un transfert unique pour plus d'efficacité
     spi.transfer(_txBuffer, AD7441XR_FRAME_SIZE);
     
     digitalWrite(_cs, HIGH);
@@ -1396,4 +1395,87 @@ int AD7441XR::_getDiState(uint32_t ch, uint16_t *state)
 	cfg.channel[ch].din_state = (int)*state;
 
 	return 0;
+}
+
+/**
+ * @brief Set the comparison mode for the digital input
+ * @param ch - The channel index
+ * @param useThreshold - True if threshold mode should be used, false if hysteresis mode should be used
+ * @return 0 in case of success, negative error code otherwise
+ */
+int AD7441XR::setDiCompMode(int ch, bool useThreshold) {
+    if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
+
+    if (!cfg.channel[ch].enabled) {
+        return AD7441XR_ERR_CHANNEL_DISABLED;
+    }
+
+    // Bit 6 du registre DIN_CONFIG contrôle le mode de comparaison
+    // 0 = mode hystérésis, 1 = mode seuil
+    int ret = _updateRegister(AD7441XR_DIN_CONFIG(ch), 
+                            NO_OS_BIT(6), 
+                            useThreshold ? 1 : 0);
+    if (ret) return AD7441XR_ERR_COMM_FAIL;
+
+    return AD7441XR_SUCCESS;
+}
+
+/**
+ * @brief Set GPO mode for a channel
+ * @param ch - The channel index (0-3)
+ * @param mode - GPO operating mode
+ * @return 0 in case of success, negative error code otherwise
+ */
+int AD7441XR::setGpoMode(int ch, enum ad7441xr_gpo_mode mode) {
+    if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
+
+    if (!cfg.channel[ch].enabled) {
+        return AD7441XR_ERR_CHANNEL_DISABLED;
+    }
+
+    int ret = _updateRegister(AD7441XR_GPO_CONFIG(ch), 
+                            AD7441XR_GPO_SELECT_MASK,
+                            mode);
+    if (ret) return AD7441XR_ERR_COMM_FAIL;
+
+    return AD7441XR_SUCCESS;
+}
+
+/**
+ * @brief Set GPO output state for a channel (only works in GPO_DATA mode)
+ * @param ch - The channel index (0-3)
+ * @param state - Output state (true = high, false = low)
+ * @return 0 in case of success, negative error code otherwise
+ */
+int AD7441XR::setGpoOutput(int ch, bool state) {
+    if (ch < 0 || ch >= AD7441XR_N_CHANNELS) {
+        return AD7441XR_ERR_INVALID_PARAM;
+    }
+
+    if (!cfg.channel[ch].enabled) {
+        return AD7441XR_ERR_CHANNEL_DISABLED;
+    }
+
+    int ret = _updateRegister(AD7441XR_GPO_CONFIG(ch), 
+                            AD7441XR_GPO_DATA_MASK,
+                            state ? 1 : 0);
+    if (ret) return AD7441XR_ERR_COMM_FAIL;
+
+    return AD7441XR_SUCCESS;
+}
+
+/**
+ * @brief Set all GPO states simultaneously (only works when GPOs are in PARALLEL mode)
+ * @param states - Bit mask for all channels (bit 0 = channel A, bit 1 = channel B, etc)
+ * @return 0 in case of success, negative error code otherwise
+ */
+int AD7441XR::setGpoParallel(uint8_t states) {
+    int ret = _writeRegister(AD7441XR_GPO_PARALLEL, states & 0x0F);
+    if (ret) return AD7441XR_ERR_COMM_FAIL;
+
+    return AD7441XR_SUCCESS;
 }

@@ -40,8 +40,8 @@
 #ifndef _AD7441XR_H_
 #define _AD7441XR_H_
 
-#include "stdint.h"
-#include "stdbool.h"
+#include <Arduino.h>
+#include <SPI.h>
 #include "ad7441xr_dfs.h"
 
 /**
@@ -51,14 +51,14 @@ struct channel_cfg
 {
 	bool enabled;
 	enum ad7441xr_op_mode func;
-	long adc_raw;							  // Latest ADC raw value (raw adc code 0-65535 or -EINOP if channel unavailable)
-	float adc_real;							  // Latest ADC real value (value depending on current mode or -EINOP if channel unavailable)
+	long adc_raw;							  // Latest ADC raw value (raw adc code 0-65535 or AD7441XR_ERR_CHANNEL_DISABLED if channel unavailable)
+	float adc_real;							  // Latest ADC real value (value depending on current mode or AD7441XR_ERR_CHANNEL_DISABLED if channel unavailable)
     enum ad7441xr_adc_unit adc_unit;          // ADC unit
 	unsigned long adc_timestamp;			  // Timestamp of latest ADC reading based on millis() function (0 after a device start/reset)
 	enum ad7441xr_adc_sample adc_sample_rate; // ADC sample rate
-	long dac_raw;							  // Raw DAC code 0-65535 or -EINOP if unavailable
-    float dac_real;                           // Real DAC setpoint (value depending on current mode or -EINOP if channel unavailable)
-	long dac_clr;							  // Raw DAC clear code 0-65535 or -EINOP if unavailable
+	long dac_raw;							  // Raw DAC code 0-65535
+    float dac_real;                           // Real DAC setpoint (value depending on current mode)
+	long dac_clr;							  // Raw DAC clear code 0-65535
     int din_state;                            // DIN state 0-1
 	int din_threshold;						  // DIN threshold 0-16000
     int din_debounce;						  // DIN threshold 0-31 (see datasheet for debounce time settings)
@@ -94,8 +94,8 @@ class AD7441XR {
         enum ad7441xr_chip_id chipId;
         int _rstPin;
         int _alertPin;
-        boolean usingResetPin;
-        boolean usingAlertPin;
+        bool usingResetPin;
+        bool usingAlertPin;
         uint8_t _txBuffer[4];
         uint8_t _rxBuffer[4];
         struct ad7441xr_cfg cfg;
@@ -192,6 +192,10 @@ class AD7441XR {
         ad7441xr_cfg getCfg();                                  // Get configuration structure to access chip parameters & DAC/ADC values directly
         int getAlertPinState();                                 // Monitor ALERT pin
         int softReset();                                        // Perform a soft reset
+        int setDiCompMode(int ch, bool useThreshold);            // Set DI comparison mode (threshold or hysteresis)
+        int setGpoMode(int ch, enum ad7441xr_gpo_mode mode);  // Set GPO mode
+        int setGpoOutput(int ch, bool state);                    // Set GPO output state (only in GPO_DATA mode)
+        int setGpoParallel(uint8_t states);                    // Set all GPO states simultaneously (only in GPO_PARALLEL mode)
 };
 
 #endif
